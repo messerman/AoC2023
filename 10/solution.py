@@ -29,7 +29,7 @@ class MazeTile:
         return highlight(color, s)
 
     def __repr__(self):
-        return f'{self.symbol}@({self.x}, {self.y})'
+        return f'{self.symbol}@({self.x}, {self.y}){"T" if self.looped else "F"}'
 
     def _neighbors(self, maze: 'Maze') -> list[tuple[int, int]]:
         x, y = self.x, self.y
@@ -37,10 +37,11 @@ class MazeTile:
         possible = filter(lambda p: (p[0] > -1 and p[0] < maze.width and (p[1] > -1 and p[1] < maze.height)), possible)
         return list(possible)
 
-    def find_target(self, maze: 'Maze', from_tile: 'MazeTile', target: 'MazeTile') -> list['MazeTile']:
+    def next_tile(self, maze: 'Maze', from_tile: 'MazeTile') -> 'MazeTile':
         x = self.x - from_tile.x
         y = self.y - from_tile.y
-        print(repr(self), x, y)
+        # print(repr(self), x, y)
+        should_move_to = (self.x, self.y)
         if x == 0 and y == 1: # headed down
             if self.symbol == '|':
                 should_move_to = (self.x, self.y + 1)
@@ -49,7 +50,7 @@ class MazeTile:
             elif self.symbol == 'J':
                 should_move_to = (self.x - 1, self.y)
             else:
-                print(f'Tried to go {self.symbol} from {repr(from_tile)}')
+                # print(f'Tried to go {self.symbol} from {repr(from_tile)}')
                 assert False, 'Invalid Path'
         elif x == 0 and y == -1: # headed up
             if self.symbol == '|':
@@ -59,8 +60,8 @@ class MazeTile:
             elif self.symbol == '7':
                 should_move_to = (self.x - 1, self.y)
             else:
-                print(f'Tried to go {self.symbol} from {repr(from_tile)}')
-                return []
+                # print(f'Tried to go {self.symbol} from {repr(from_tile)}')
+                assert False, 'Invalid Path'
         elif x == -1 and y == 0: # headed left
             if self.symbol == '-':
                 should_move_to = (self.x - 1, self.y)
@@ -69,8 +70,8 @@ class MazeTile:
             elif self.symbol == 'L':
                 should_move_to = (self.x, self.y - 1)
             else:
-                print(f'Tried to go {self.symbol} from {repr(from_tile)}')
-                return []
+                # print(f'Tried to go {self.symbol} from {repr(from_tile)}')
+                assert False, 'Invalid Path'
         elif x == 1 and y == 0: # headed right
             if self.symbol == '-':
                 should_move_to = (self.x + 1, self.y)
@@ -79,35 +80,59 @@ class MazeTile:
             elif self.symbol == '7':
                 should_move_to = (self.x, self.y + 1)
             else:
-                print(f'Tried to go {self.symbol} from {repr(from_tile)}')
-                return []
+                # print(f'Tried to go {self.symbol} from {repr(from_tile)}')
+                assert False, 'Invalid Path'
         else:
             assert repr(self)
 
-        try:
-            next_tile = maze.get_tile(should_move_to[0], should_move_to[1])
-        except:
-            return []
-        
-        if next_tile == target:
-            self.looped = True
-            return [self]
-        
-        path = next_tile.find_target(maze, self, target)
-        if path:
-            self.looped = True
-            return [self] + path
+        return maze.get_tile(should_move_to[0], should_move_to[1])
 
-        return []
+    '''
+    s 1 2 3 4 5 t
+    -------------
+    f c n - - - t
+    s f c n - - t
+    s - f c n - t
+    s - - f c n t
+    s - - - f c n
+    '''
+    def find_target(self, maze: 'Maze', from_tile: 'MazeTile', target: 'MazeTile') -> list['MazeTile']:
+        try:
+            current_tile = self
+            next_tile = current_tile.next_tile(maze, from_tile)
+            path: list['MazeTile'] = []
+            # print(repr(from_tile), from_tile.x, from_tile.y)
+            # print(repr(current_tile), current_tile.x, current_tile.y)
+            path.append(current_tile)
+            while next_tile != target:
+                # print(repr(next_tile), next_tile.x, next_tile.y)
+                from_tile = current_tile
+                current_tile = next_tile
+                next_tile = current_tile.next_tile(maze, from_tile)
+                path.append(current_tile)
+            # print(repr(next_tile), next_tile.x, next_tile.y)
+            return path
+        except:
+            # print(f'Unable to go from {repr(from_tile)} to {repr(current_tile)}')
+            return []
+
+    # helper function because you can't assign variables in a map()
+    def set_looped(self, is_looped: bool) -> 'MazeTile':
+        self.looped = is_looped
+        return self
 
     def find_loop(self, maze: 'Maze') -> list['MazeTile']:
         assert self.symbol == 'S'
-        print(repr(self))
+        # print(repr(self))
         possible: Mapping[tuple[int, int], 'MazeTile'] = map(lambda p: maze.get_tile(p[0], p[1]), self._neighbors(maze))
         possible_pipes: list['MazeTile'] = list(filter(lambda tile: tile.symbol != '.', possible))
         for tile in possible_pipes:
             path = tile.find_target(maze, self, self)
             if path:
+                # print(path)
+                # print(len(path) // 2 + 1)
+                path = list(map(lambda x: x.set_looped(True), path))
+                # print(path)
                 return path
         return []
 
@@ -150,15 +175,14 @@ def parse(my_input: list[str]) -> Maze:
         except BaseException as e:
             print(line)
             raise e
-    print(maze)
-    maze.starting.find_loop(maze)
-    print(maze)
+    # print(maze)
     return maze
 
 def solution1(my_input: list[str]) -> int:
     maze = parse(my_input)
+    loop = maze.starting.find_loop(maze)
     print(maze)
-    return -1 # TODO
+    return len(loop) // 2 + 1
 
 def solution2(my_input: list[str]) -> int:
     maze = parse(my_input)

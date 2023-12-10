@@ -1,7 +1,7 @@
 from enum import Enum
 
 class Color(Enum):
-    BLACK = 90
+    GREY = 90
     RED = 91
     GREEN = 92
     YELLOW = 93

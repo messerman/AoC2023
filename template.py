@@ -12,11 +12,11 @@ def parse(my_input: list[str]) -> list[str]:
     return result
 
 def solution1(my_input: list[str]) -> int:
-    sequences = parse(my_input)
+    data = parse(my_input)
     return -1 # TODO
 
 def solution2(my_input: list[str]) -> int:
-    sequences = parse(my_input)
+    data = parse(my_input)
     return -1 # TODO
 
 if __name__ == '__main__':

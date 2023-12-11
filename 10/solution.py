@@ -13,6 +13,7 @@ class MazeTile:
         self.symbol = symbol
         self.looped = looped
         self.outside = False
+        self.inside = False
     
     def __str__(self):
         # print(repr(self))
@@ -25,14 +26,14 @@ class MazeTile:
         elif self.outside:
             color = Color.GREY
             s = ' ' if ONLY_LOOPS else 'O'
-        else:
+        elif self.inside:
             color = Color.WHITE
-            s = 'I'
-        # elif self.symbol in '|-LJ7F':
-        #     color = Color.GREY if ONLY_PIPES else Color.WHITE
-        #     s = ' ' if ONLY_LOOPS else self.symbol
-        # elif ONLY_PIPES or ONLY_LOOPS:
-        #     s = ' '
+            s = ' ' if ONLY_LOOPS else 'I'
+        elif self.symbol in '|-LJ7F':
+            color = Color.GREY if ONLY_PIPES else Color.WHITE
+            s = ' ' if ONLY_LOOPS else self.symbol
+        elif ONLY_PIPES or ONLY_LOOPS:
+            s = ' '
         return highlight(color, s)
 
     def __repr__(self):
@@ -132,8 +133,8 @@ class MazeTile:
                 path = list(map(lambda x: x.set_looped(True), path))
                 return path
         return []
-    
-    def is_enclosed(self, maze: 'Maze') -> bool:
+
+    def _looped_tiles(self, maze: 'Maze') -> list['MazeTile']:
         possible_tiles = []
 
         y = self.y
@@ -150,13 +151,19 @@ class MazeTile:
             except:
                 pass
 
-        wall_tiles = list(filter(lambda tile: tile != self and tile.looped, possible_tiles))
-        num_walls_to_left = len(list(filter(lambda tile: tile.x < self.x, wall_tiles)))
-        num_walls_to_right = len(list(filter(lambda tile: tile.x > self.x, wall_tiles)))
-        num_walls_down = len(list(filter(lambda tile: tile.y > self.y, wall_tiles)))
-        num_walls_up = len(list(filter(lambda tile: tile.y < self.y, wall_tiles)))
+        return list(filter(lambda tile: tile != self and tile.looped, possible_tiles))
 
-        return bool(num_walls_to_left) and bool(num_walls_to_right) and bool(num_walls_down) and bool(num_walls_up)
+    def is_enclosed(self, maze: 'Maze') -> bool:
+        looped_tiles = self._looped_tiles(maze)
+        num_to_left_wall = len(list(filter(lambda tile: tile.x < self.x, looped_tiles)))
+        num_to_right_wall = len(list(filter(lambda tile: tile.x > self.x, looped_tiles)))
+        num_to_down_wall = len(list(filter(lambda tile: tile.y > self.y, looped_tiles)))
+        num_to_up_wall = len(list(filter(lambda tile: tile.y < self.y, looped_tiles)))
+
+        return bool(num_to_left_wall) and bool(num_to_right_wall) and bool(num_to_down_wall) and bool(num_to_up_wall)
+
+    def is_outside(self, maze: 'Maze') -> bool:
+        return not self.is_enclosed(maze)
 
     def find_group(self, maze: 'Maze') -> list['MazeTile']:
         if self.looped:
@@ -165,18 +172,23 @@ class MazeTile:
         to_visit: list['MazeTile'] = [self]
         visited: list['MazeTile'] = [self]
         while len(to_visit) > 0:
+            # print('.', end='', flush=True)
+            # print(len(group), len(to_visit), len(visited), maze.width * maze.height)
+            # print(len(to_visit))
             tile = to_visit.pop(0)
             visited.append(tile)
             if tile.looped:
                 continue
             group.append(tile)
             for neighbor in tile.neighbors(maze):
-                if neighbor not in visited and neighbor not in to_visit:
+                if not neighbor.looped and neighbor not in visited and neighbor not in to_visit:
                     to_visit.append(neighbor)
-        
-        if not self.is_enclosed(maze):
-            for tile in group:
-                tile.outside = True
+                    # print(neighbor, to_visit)
+        # print('')
+        # if not self.is_enclosed(maze):
+        for tile in group:
+            tile.outside = not self.is_enclosed(maze)
+            tile.inside = self.is_enclosed(maze)
         return group
 
 class Maze:
@@ -209,20 +221,100 @@ class Maze:
         return tile
 
     def find_outside(self) -> int:
-        count = 0
-        to_visit = list(self.maze.values())
+        to_visit = []#list(self.maze.values())
+        for y in range(self.height):
+            for x in range(self.width):
+                to_visit.append(self.maze[(x, y)])
+        # for k,v in list(self.maze.items()):
+        #     print(k, repr(v))
         while len(to_visit) > 0:
+            # print('.', end='', flush=True)
+            # print(len(to_visit))
             tile = to_visit.pop(0)
             if tile.looped:
                 continue
-            for t in tile.find_group(self):
+            group = tile.find_group(self)
+            for t in group:
+                # print(t)
                 if t in to_visit:
                     to_visit.remove(t)
-
+                if t.is_outside(self):
+                    t.outside = True
+        # print('')
+        count = 0
         for tile in self.maze.values():
             if not tile.outside and not tile.looped:
                 count += 1
         return count
+
+    def find_outside2(self) -> int:
+        loop = self.starting.find_loop(self)
+        # print(self)
+        # print('expand')
+        self.expand()
+        # print(self)
+        # print('find_outside')
+        self.find_outside()
+        # print(self)
+        # print('contract')
+        self.contract()
+        count = 0
+        for tile in self.maze.values():
+            if not tile.outside and not tile.looped:
+                count += 1
+        # print(self)
+        return count
+
+    def expand(self):
+        new_width = 2 * self.width
+        new_height = 2 * self.height
+        new_maze: dict[tuple[int, int], MazeTile] = defaultdict(lambda: MazeTile(-1, -1, '.'))
+        for y in range(new_height):
+            for x in range(new_width):
+                # print(x, y, x//2, y//2)
+                if x % 2 == 0 and y % 2 == 0:
+                    tile = self.get_tile(x//2, y//2)
+                    # print(x, y, repr(tile))
+                    tile.x = x
+                    tile.y = y
+                    new_maze[(x,y)] = tile
+                    if not tile.looped:
+                        continue
+                    if tile.symbol in '-7J':
+                        ltile = new_maze[(tile.x - 1, tile.y)]
+                        ltile.symbol = '-'
+                        ltile.looped = True
+                    if tile.symbol in '-FL':
+                        rtile = new_maze[(tile.x + 1, tile.y)]
+                        rtile.symbol = '-'
+                        rtile.looped = True
+                    if tile.symbol in '|JL':
+                        utile = new_maze[(tile.x, tile.y - 1)]
+                        utile.symbol = '|'
+                        utile.looped = True
+                    if tile.symbol in '|F7':
+                        dtile = new_maze[(tile.x, tile.y + 1)]
+                        dtile.symbol = '|'
+                        dtile.looped = True
+                else:
+                    tile = new_maze[(x, y)]
+                    tile.x = x
+                    tile.y = y
+
+        self.maze = new_maze
+        self.width = new_width
+        self.height = new_height
+
+    def contract(self):
+        new_width = self.width // 2
+        new_height = self.height // 2
+        new_maze: dict[tuple[int, int], MazeTile] = defaultdict(lambda: MazeTile(-1, -1, '.'))
+        for y in range(new_height):
+            for x in range(new_width):
+                new_maze[(x, y)] = self.maze[(x*2, y*2)]
+        self.maze = new_maze
+        self.width = new_width
+        self.height = new_height
 
 def parse(my_input: list[str]) -> Maze:
     maze = Maze(len(my_input[0] if len(my_input) else 0), len(my_input))
@@ -246,15 +338,18 @@ def solution1(my_input: list[str]) -> int:
 def solution2(my_input: list[str]) -> int:
     maze = parse(my_input)
     loop = maze.starting.find_loop(maze)
-    outside = maze.find_outside()
+    # outside = maze.find_outside()
+    print(str(maze) + '\n')
+    num_inside = maze.find_outside2()
     print(maze)
-    return outside
+    return num_inside
 
 if __name__ == '__main__':
-    # for part in [1, 2]:
-    for part in [2]:
+    for part in [1, 2]:
+    # for part in [2]:
         print(f"---- Part { 'One' if part == 1 else 'Two' } ----")
         for file in ['simple.txt', 'complex.txt', 'cluttered.txt', 'sample.txt', 'loop.txt', 'closed_loop.txt', 'larger.txt', 'sample2.txt', 'input.txt']:
+        # for file in ['simple.txt', 'input.txt']:
             print(f'-- {file} --')
             print(str(eval(f'solution{part}')(open(file, 'r').read().split('\n'))))
             text = input('continue? ')

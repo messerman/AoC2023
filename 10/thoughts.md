@@ -3,4 +3,7 @@
 * classes: MazeTile, Maze
 * finding the "loop" was pretty straightforward - but I had to break my recursive approach out to a looped one when I hit the "real" input
 # Part 2
-* 
+* this was a beast - first one I didn't get done w/in 24 hours
+* I got an almost-working solution done by finding "groups" and then if any of them were not "enclosed" (i.e. looped pipes in each direction) then I marked it as "outside" - but this left out the annoying edge case where the tile might be enclosed but on the wrong "side" of the loop
+* eventually (w/ hints) got that edge case working by expanding the whole maze (doubling it in size), and then finding outsides, and then collapsing back to the original size
+* final solution was so slow I thought something was broken, but it finished w/in a few minutes

@@ -9,10 +9,20 @@ class Universe:
         self.galaxies = galaxies
     
     def get(self, x: int, y: int) -> str:
+        cols_without_galaxies = sorted(list(set(range(self.height)) - set(map(lambda galaxy: galaxy[0], self.galaxies))))
+        rows_without_galaxies = sorted(list(set(range(self.width)) - set(map(lambda galaxy: galaxy[1], self.galaxies))))
+        color = Color.WHITE
+        if x in cols_without_galaxies and y in rows_without_galaxies:
+            color = Color.MAGENTA
+        elif x in cols_without_galaxies:
+            color = Color.RED
+        elif y in rows_without_galaxies:
+            color = Color.BLUE
+        
         if (x, y) in self.galaxies:
-            return '#'
+            return highlight(Color.GREEN, '#')
         # return self.universe[y][x]
-        return '.'
+        return highlight(color, '.')
     
     def __str__(self):
         output = ''
@@ -27,17 +37,17 @@ class Universe:
         x2, y2 = self.galaxies[galaxy2]
         return abs(x1-x2) + abs(y1-y2)
 
-    def expand(self):
+    def expand(self, amount = 2):
         cols_without_galaxies = sorted(list(set(range(self.height)) - set(map(lambda galaxy: galaxy[0], self.galaxies))))
         rows_without_galaxies = sorted(list(set(range(self.width)) - set(map(lambda galaxy: galaxy[1], self.galaxies))))
-        self.width += len(cols_without_galaxies)
-        self.height += len(rows_without_galaxies)
-        # print(rows_without_galaxies, cols_without_galaxies)
+        self.width += (amount) * len(cols_without_galaxies)
+        self.height += (amount) * len(rows_without_galaxies)
+        # print(rows_without_galaxies, cols_without_galaxies, self.width, self.height)
         for n, galaxy in enumerate(self.galaxies):
             # print(n, galaxy)
             # print(len(list(filter(lambda x: x < galaxy[0], cols_without_galaxies))))
-            new_x = galaxy[0] + len(list(filter(lambda x: x < galaxy[0], cols_without_galaxies)))
-            new_y = galaxy[1] + len(list(filter(lambda y: y < galaxy[1], rows_without_galaxies)))
+            new_x = galaxy[0] + (amount - 1) * len(list(filter(lambda x: x < galaxy[0], cols_without_galaxies)))
+            new_y = galaxy[1] + (amount - 1) * len(list(filter(lambda y: y < galaxy[1], rows_without_galaxies)))
             self.galaxies[n] = (new_x, new_y)
             # print(galaxy, self.galaxies[n])
 
@@ -71,7 +81,14 @@ def solution1(my_input: list[str]) -> int:
 
 def solution2(my_input: list[str]) -> int:
     universe = parse(my_input)
-    return -1 # TODO
+    # print(str(universe))
+    universe.expand(1000000)
+    # print(str(universe))
+    d = 0
+    for i in range(len(universe.galaxies) - 1):
+        for j in range(i+1, len(universe.galaxies)):
+            d += universe.find_distance(i, j)
+    return d
 
 if __name__ == '__main__':
     for part in [1, 2]:

@@ -1,44 +1,7 @@
 #!/usr/bin/env python3
 from tools.colors import *
+from tools.position import Position
 from copy import deepcopy
-
-class Position:
-    def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
-    
-    def __str__(self):
-        return str((self.x, self.y))
-    
-    def __repr__(self):
-        return str(self)
-    
-    def to_tuple(self) -> tuple[int, int]:
-        return (self.x, self.y)
-    
-    def north(self) -> tuple[int, int]:
-        return (self.x, self.y - 1)
-
-    def south(self) -> tuple[int, int]:
-        return (self.x, self.y + 1)
-
-    def east(self) -> tuple[int, int]:
-        return (self.x + 1, self.y)
-
-    def west(self) -> tuple[int, int]:
-        return (self.x - 1, self.y)
-
-    def go_north(self):
-        self.x, self.y = self.north()
-
-    def go_south(self):
-        self.x, self.y = self.south()
-
-    def go_east(self):
-        self.x, self.y = self.east()
-
-    def go_west(self):
-        self.x, self.y = self.west()
 
 class Rock(Position):
     def __init__(self, x: int, y: int, symbol: str):

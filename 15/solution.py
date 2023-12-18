@@ -57,7 +57,6 @@ def solution2(my_input: list[str]) -> int:
             if not found:
                 box.append(f'{label} {focal_length}')
             # print(box)
-            # TODO - put [label focal_length] in box h
         else:
             label = d.split('-')[0]
             for l in box:

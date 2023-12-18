@@ -9,6 +9,11 @@ class Position:
     def __repr__(self):
         return str(self)
     
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Position):
+            return NotImplemented
+        return self.x == other.x and self.y == other.y
+
     def to_tuple(self) -> tuple[int, int]:
         return (self.x, self.y)
     

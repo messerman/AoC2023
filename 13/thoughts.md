@@ -6,3 +6,4 @@
 # Part 2
 * this looks obnoxious
 * first idea: create a "matches" function that takes in two strings and returns if they match (and if not, how far off they are), and then use that, plus keeping the number of "off" areas (smudges) to a maximum of one, total
+* ?

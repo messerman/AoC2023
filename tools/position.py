@@ -29,6 +29,9 @@ class Position:
     def west(self) -> tuple[int, int]:
         return (self.x - 1, self.y)
 
+    def neighbors(self) -> list[tuple[int, int]]:
+        return [self.north(), self.south(), self.east(), self.west()]
+
     def go_north(self):
         self.x, self.y = self.north()
 

@@ -172,14 +172,30 @@ class Grid:
     def num_lava(self) -> int:
         return sum(map(lambda tile: 1 if tile.symbol == '#' else 0, list(chain(*self.grid_tiles))))
 
-def parse(my_input: list[str]) -> Grid:
+def parse(my_input: list[str], part2=False) -> Grid:
     x = 0
     y = 0
     tiles: dict[tuple[int, int], GridTile] = {(x, y): GridTile(x, y, '#')}
     for line in my_input: # e.g. 'R 6 (#70c710)'
         try:
             direction, times, color = line.split(' ')
-            color = rgb_from_hex(color[1:-1])
+            if part2:
+                assert False, 'This will not finish before the heat death of the universe'
+                times = int(color[2:-2], base=16)
+                # 0 means R, 1 means D, 2 means L, and 3 means U.
+                if color[-2] == '0':
+                    direction = 'R'
+                elif color[-2] == '1':
+                    direction = 'D'
+                elif color[-2] == '2':
+                    direction = 'L'
+                elif color[-2] == '3':
+                    direction = 'U'
+                else:
+                    assert direction
+                color = (255, 0, 0)
+            else:
+                color = rgb_from_hex(color[1:-1])
             for time in range(int(times)):
                 if direction == 'R':
                     x += 1
@@ -206,11 +222,13 @@ def solution1(my_input: list[str]) -> int:
     return grid.num_lava()
 
 def solution2(my_input: list[str]) -> int:
-    grid = parse(my_input)
+    grid = parse(my_input, True)
+    print(grid)
     return -1 # TODO
 
 if __name__ == '__main__':
-    for part in [1, 2]:
+    # for part in [1, 2]:
+    for part in [2]:
         print(f"---- Part { 'One' if part == 1 else 'Two' } ----")
         for file in ['sample.txt', 'input.txt']:
             print(f'-- {file} --')
